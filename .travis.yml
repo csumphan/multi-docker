@@ -1,0 +1,44 @@
+sudo: required # whenever we use docker we need super user permission
+services:
+  - docker # install docker
+
+before_install: # things to do before running test or deploy to prod ie build docker image
+    # this tag will only be used in the travis pipeline
+  - docker build -t csumphan/react-test -f ./client/Dockerfile.dev . # give this a tag, since we won't be able to use the image id later
+
+script: # all commands to run test suite
+  - docker run -e CI=true csumphan/react-test npm run test -- --coverage
+
+
+# create images for all services
+after_success:
+  - docker build -t csumphan/multi-client ./client
+  - docker build -t csumphan/multi-nginx ./nginx
+  - docker build -t csumphan/multi-server ./server
+  - docker build -t csumphan/multi-worker ./worker
+
+# login to the docker CLI
+#echo docker_password retrieve ur docker password and emit as input for the next command
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
+# take those images and push them into dockerhub
+  - docker push csumphan/multi-client
+  - docker push csumphan/multi-nginx
+  - docker push csumphan/multi-server
+  - docker push csumphan/multi-worker
+
+deploy:
+  provider: elasticbeanstalk # travis comes builtin to deploy diff providers
+  region: "us-west-1"
+  app: "docker-react"
+  env: "DockerReact-env"
+  bucket_name: "elasticbeanstalk-us-west-1-604267716804" #after travis is done building, it will copy files to an S3 bucket
+  bucket_path: "docker-react"
+  on:
+    branch: master # deploy only on master
+  access_key_id: $AWS_ACCESS_KEY
+  secret_access_key: $AWS_SECRET_KEY
+
+
+# need to set up IAM in AWS for travis access
+# create user for travis-ci
+# get programmatic access type
