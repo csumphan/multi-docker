@@ -4,7 +4,7 @@ services:
 
 before_install: # things to do before running test or deploy to prod ie build docker image
     # this tag will only be used in the travis pipeline
-  - docker build -t csumphan/react-test -f ./client/Dockerfile.dev . # give this a tag, since we won't be able to use the image id later
+  - docker build -t csumphan/react-test -f ./client/Dockerfile.dev ./client # give this a tag, since we won't be able to use the image id later
 
 script: # all commands to run test suite
   - docker run -e CI=true csumphan/react-test npm run test -- --coverage
